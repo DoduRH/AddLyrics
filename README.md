@@ -18,6 +18,14 @@ The `Render` folder contains the server that renders the videos.  This is no lon
 
 ## Deploying
 
+### Frontend
+
+```
+gloud app deploy (--no-promote)
+```
+
+### Backend
+
 ```
 gcloud auth configure-docker europe-west1-docker.pkg.dev
 docker build . -t europe-west1-docker.pkg.dev/<project-name>/cloud-run-source-deploy/render
