@@ -11,6 +11,9 @@ import math
 from datetime import timedelta
 from mimetypes import guess_type
 
+
+CONTENT_PATH = os.environ.get("MNT_DIR")
+
 class position():
     def __init__(self, pos, text_h, line_gap=1.25, edging=0.025):
         self.pos = pos.lower()
@@ -42,20 +45,6 @@ class position():
     def getXPos(self):
         return self.x
 
-
-class advanced_dict():
-    def __init__(self, dictionary):
-        self.dictionary = dictionary
-        super().__init__()
-
-    def get_value(self, key, default=None):
-        if key not in self.dictionary.keys():
-            return default
-
-        try:
-            return self.dictionary[key]
-        except KeyError:
-            return default
 
 def aspect(a, b):
     a = round(a)
@@ -157,38 +146,35 @@ def generate_solid_background(video_id, background_colour, dim=(1, 1)):
     return filename
 
 # Take timed_words.csv of time stamped lines and put onto video.mp4
-def render(args):
+def render(args: dict):
 
     # Get values from the dictionary
-    my_dict = advanced_dict(args)
-
-    video_id = my_dict.get_value("video_id")
-    words_loc = my_dict.get_value("csv_name")
-    video_loc = my_dict.get_value("video_name")
-    audio_loc = my_dict.get_value("audio_name")
-    background_colour = my_dict.get_value("background_colour")
-    text_position = my_dict.get_value("text_position")
-    text_width = my_dict.get_value("text_width")
-    video_usable = my_dict.get_value("video_usable")
-    audio_usable = my_dict.get_value("audio_usable")
-    font = my_dict.get_value("font")
-    fontsize = my_dict.get_value("font_size")
-    video_speed = my_dict.get_value("video_speed")
-    audio_speed = my_dict.get_value("audio_speed")
-    shadow_visible = my_dict.get_value("view_shadow")
-    shadow_offset = my_dict.get_value("shadow_offset")
-    text_colour = my_dict.get_value("text_colour")
-    shadow_colour = my_dict.get_value("shadow_colour")
-    video_fade = my_dict.get_value("video_fade")
-    audio_fade = my_dict.get_value("audio_fade")
-    crop_video = my_dict.get_value("crop_video")
-    crop_audio = my_dict.get_value("crop_audio")
-    crop_image = my_dict.get_value("crop_image", [0, 0, 0, 0])
-    content_path = '/mnt/content'
+    video_id = args.get("video_id")
+    words_loc = args.get("csv_name")
+    video_loc = args.get("video_name")
+    audio_loc = args.get("audio_name")
+    background_colour = args.get("background_colour")
+    text_position = args.get("text_position")
+    text_width = args.get("text_width")
+    video_usable = args.get("video_usable")
+    audio_usable = args.get("audio_usable")
+    font = args.get("font")
+    fontsize = args.get("font_size")
+    video_speed = args.get("video_speed")
+    audio_speed = args.get("audio_speed")
+    shadow_visible = args.get("view_shadow")
+    shadow_offset = args.get("shadow_offset")
+    text_colour = args.get("text_colour")
+    shadow_colour = args.get("shadow_colour")
+    video_fade = args.get("video_fade")
+    audio_fade = args.get("audio_fade")
+    crop_video = args.get("crop_video")
+    crop_audio = args.get("crop_audio")
+    crop_image = args.get("crop_image", [0, 0, 0, 0])
 
     font = 'Montserrat/Montserrat-SemiBold.ttf'
     if words_loc != "":
-        words_loc = f'{content_path}/{words_loc}'
+        words_loc = f'{CONTENT_PATH}/{words_loc}'
         with open(words_loc, newline='') as csvfile:
             data = list(csv.reader(csvfile))
     else:
@@ -196,7 +182,7 @@ def render(args):
 
     solid_background = (video_loc == "")
     if not solid_background:
-        video_url = f'{content_path}/{video_loc}'
+        video_url = f'{CONTENT_PATH}/{video_loc}'
         visual_type = guess_type(video_loc)[0]
         video_size_in = os.path.getsize(video_url)
     else:
@@ -210,10 +196,10 @@ def render(args):
         audio_url = video_url # THIS SHOULD NOT BE NEEDED #
         audio_size_in = 0
     else:
-        audio_url = f'{content_path}/{audio_loc}'
+        audio_url = f'{CONTENT_PATH}/{audio_loc}'
         audio_size_in = os.path.getsize(audio_url)
 
-    output_name = f"{content_path}/VideoOutput_" + video_id + ".mp4"
+    output_name = f"{CONTENT_PATH}/VideoOutput_" + video_id + ".mp4"
 
     video_probe = ffmpeg.probe(video_url)
     video_streams = [stream for stream in video_probe["streams"] if stream["codec_type"] == "video"]
@@ -234,7 +220,10 @@ def render(args):
         video_comp = in_file.video
 
         # Calculate video duration
-        video_stream_duration = float(video_streams[0]['duration'])
+        # TODO: MKV files don't have an end time
+        video_stream_duration = next((float(x.get("duration")) for x in video_probe['streams'] if x.get("duration")), None)
+        if video_stream_duration is None:
+            raise ValueError("Unknown duration for vide file")
         if video_usable[1] <= video_usable[0]:
             video_usable[1] = video_stream_duration
         else:
