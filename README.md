@@ -1,6 +1,6 @@
 # Add My Lyrics
 
-Add my lyrics is a website to quickly and easily add accurately timed lyrics to videos.  The deployed website can be found [here](https://addmylyrics.com).  [Ffmpeg WASM](https://github.com/ffmpegwasm/ffmpeg.wasm) is used to render the video in the web browser.
+Add my lyrics is a website to quickly and easily add accurately timed lyrics to videos.  The deployed website can be found [here](https://lyrics.joshhq.uk).  [Ffmpeg WASM](https://github.com/ffmpegwasm/ffmpeg.wasm) is used to render the video in the web browser.
 
 ## Running locally
 
@@ -10,8 +10,16 @@ Under normal running conditions data is logged to Google firestore.  When runnin
 
 ## How to use
 
-For a complete how-to guide for the site click [here](https://addmylyrics.com/how-to).
+For a complete how-to guide for the site click [here](https://lyrics.joshhq.uk/how-to).
 
 ## Video Rendering
 
 The `Render` folder contains the server that renders the videos.  This is no longer needed as the rendering is now done on the client using ffmpeg-WASM.  In older versions of the website however the rendering engine sat behind a task queue to buffer incoming render tasks.
+
+## Deploying
+
+```
+gcloud auth configure-docker europe-west1-docker.pkg.dev
+docker build . -t europe-west1-docker.pkg.dev/<project-name>/cloud-run-source-deploy/render
+docker push -t europe-west1-docker.pkg.dev/<project-name>/cloud-run-source-deploy/render
+```
