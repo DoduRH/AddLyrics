@@ -5,7 +5,7 @@ set -eo pipefail
 mkdir -p $MNT_DIR
 
 echo "Mounting GCS Fuse."
-gcsfuse --debug_gcs --debug_fuse -file-mode=666 -dir-mode=666 --key-file=/app/google-authorisation.json $BUCKET $MNT_DIR 
+gcsfuse -file-mode=666 -dir-mode=666 --key-file=/app/google-authorisation.json $BUCKET $MNT_DIR 
 echo "Mounting completed."
 
 # Run the web service on container startup. Here we use the gunicorn
