@@ -3,15 +3,15 @@
 {% extends "base.html" %}
 
 {% block head %}
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Quickly and easily add lyrics to your videos" />
-  <meta name="keywords" content="video lyric word song overlay editing" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.2.1/jquery.floatThead.min.js" 
-    integrity="sha512-q0XkdCnK0e3QLJgYrtENEEmAv+urSGCQs/xCXF4xs+NoLfNWD+j7iMqNYXtFOQfnYDsfE4Z7phZqaHgYJrGB/g==" 
-    crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="/static/css/video.css">
-  <title>Add lyrics to a video</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Quickly and easily add lyrics to your videos" />
+<meta name="keywords" content="video lyric word song overlay editing" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/floatthead/2.2.1/jquery.floatThead.min.js"
+  integrity="sha512-q0XkdCnK0e3QLJgYrtENEEmAv+urSGCQs/xCXF4xs+NoLfNWD+j7iMqNYXtFOQfnYDsfE4Z7phZqaHgYJrGB/g=="
+  crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/static/css/video.css">
+<title>Add lyrics to a video</title>
 {% endblock %}
 
 {% block content %}
@@ -30,7 +30,7 @@
                   <col span="1">
                   <col span="1" class="middle-column-width">
                   <col span="1">
-                </colgroup>  
+                </colgroup>
                 <tr>
                   <td>
                     <label for="visualType">Select background type</label>
@@ -262,7 +262,7 @@
                   <col span="1">
                   <col span="1" class="middle-column-width">
                   <col span="1">
-                </colgroup>  
+                </colgroup>
                 <tr>
                   <td>
                     <label for="audioSource">Select audio source</label>
@@ -498,7 +498,7 @@
                   <col span="1">
                   <col span="1" class="middle-column-width">
                   <col span="1">
-                </colgroup>  
+                </colgroup>
                 <tr>
                   <td>
                     <label for="font_size">Font size</label>
@@ -675,8 +675,7 @@
           <header class="card-header">
             <p class="card-header-title">Crop Video</p>
             <a class="card-header-icon card-toggle no-select">
-              <img class="fa fa-angle-down"
-                src="static/images/arrow-down.svg"></i>
+              <img class="fa fa-angle-down" src="static/images/arrow-down.svg"></i>
             </a>
           </header>
           <div class="card-content">
@@ -696,8 +695,7 @@
           <header class="card-header">
             <p class="card-header-title">Preview frame</p>
             <a class="card-header-icon card-toggle no-select">
-              <img class="fa fa-angle-down"
-                src="static/images/arrow-down.svg"></i>
+              <img class="fa fa-angle-down" src="static/images/arrow-down.svg"></i>
             </a>
           </header>
           <div class="card-content">
@@ -731,7 +729,7 @@
           <div class="card-content">
             <div class="content">
               <div>
-                <button id="submitbutton" class="button is-fullwidth is-primary" onclick="renderVideo()"
+                <button id="submitbutton" class="button is-fullwidth is-primary" onclick="submitForm()"
                   type="button">Submit</button>
               </div>
               <div hidden>
@@ -740,6 +738,14 @@
             </div>
           </div>
         </div>
+        <textarea type="text" id="csv" name="csvFile" value="" readonly hidden></textarea>
+        <input type="number" id="videoTop" name="videoTop" readonly hidden>
+        <input type="number" id="videoLeft" name="videoLeft" readonly hidden>
+        <input type="number" id="videoBottom" name="videoBottom" readonly hidden>
+        <input type="number" id="videoRight" name="videoRight" readonly hidden>
+        <input type="text" id="videoExt" name="videoExt" readonly hidden>
+        <input type="text" id="audioExt" name="audioExt" readonly hidden>
+        <input type="text" id="uuid" name="uuid" readonly hidden>
       </form>
     </div>
     <div class="lyrics column">

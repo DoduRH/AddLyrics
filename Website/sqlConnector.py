@@ -14,7 +14,6 @@ def set_document(document, data, merge=False):
 
     # Make sure no elements of data are multi-dimensional arrays
     submit_data = copy.deepcopy(data)
-    submit_data['form']['words_array'] = str(submit_data['form']['words_array'])
 
     mydb = firestore.Client.from_service_account_json(service_account_json_path)
     submit_data['edit-time'] = datetime.datetime.now()

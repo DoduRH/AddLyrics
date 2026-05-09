@@ -36,9 +36,9 @@ rrggbbString = reg(r'#[a-fA-F0-9]{6}$')
 
 @app.after_request
 def apply_headers(response):
-    if not request.full_path.startswith("/how-to?"):
-        response.headers.add("Cross-Origin-Opener-Policy", "same-origin")
-        response.headers.add("Cross-Origin-Embedder-Policy", "require-corp")
+    # if not request.full_path.startswith("/how-to?"):
+    #     response.headers.add("Cross-Origin-Opener-Policy", "same-origin")
+    #     response.headers.add("Cross-Origin-Embedder-Policy", "require-corp")
     return response
 
 @app.before_request
@@ -275,201 +275,199 @@ def get_arguments():
 
     return jsonify(return_args)
 
-# TODO: Remove endpoints like this that are not in use any more
-@app.route('/uploader', methods=['GET', 'POST'])
+@app.route('/uploader', methods=['POST'])
 def uploader():
-    if request.method == 'POST':
-        if not service_account_path.exists():
-            print("Service account json not found")
-            return error("Service account json not found, please contact us if this is an error")
+    if not service_account_path.exists():
+        print("Service account json not found")
+        return error("Service account json not found, please contact us if this is an error")
 
-        r = request
+    r = request
 
-        filename = get_value(r, 'uuid')
-        if not is_valid_uuid(filename):
-            return error("Invalid filename", filename)
-        t = filename
+    filename = get_value(r, 'uuid')
+    if not is_valid_uuid(filename):
+        return error("Invalid filename", filename)
+    t = filename
 
-        data = {
-            'form': r.form,
-            'progress': 0,
-            'start-time': datetime.datetime.now(),
-            'error': ""
-        }
-        sqlConnector.set_document(t, data, merge=True)
+    data = {
+        'form': r.form,
+        'progress': 0,
+        'start-time': datetime.datetime.now(),
+        'error': ""
+    }
+    sqlConnector.set_document(t, data, merge=True)
 
-        video_ext = get_value(r, 'videoExt', "")
-        video_name = "video_" + t + "." + video_ext
-        if video_ext == "solid":
-            video_name = ""
-            video_size = 0
-        elif not blob_exists("addlyrics-content", video_name):
-            print("Unable to find video")
-            return error("error, video upload failed")
+    video_ext = get_value(r, 'videoExt', "")
+    video_name = "video_" + t + "." + video_ext
+    if video_ext == "solid":
+        video_name = ""
+        video_size = 0
+    elif not blob_exists("addlyrics-content", video_name):
+        print("Unable to find video")
+        return error("error, video upload failed")
+    else:
+        video_size = size_blob(uploadBucketName, video_name)
+
+    ext = get_value(r, 'audioExt', "")
+    if ext == "":
+        audio_name = None
+        audio_size = 0
+    else:
+        audio_name = "audio_" + t + "." + ext
+        if not blob_exists("addlyrics-content", audio_name):
+            return error("error, audio not uploaded")
         else:
-            video_size = size_blob(uploadBucketName, video_name)
+            audio_size = size_blob(uploadBucketName, audio_name)
 
-        ext = get_value(r, 'audioExt', "")
-        if ext == "":
-            audio_name = None
-            audio_size = 0
-        else:
-            audio_name = "audio_" + t + "." + ext
-            if not blob_exists("addlyrics-content", audio_name):
-                return error("error, audio not uploaded")
-            else:
-                audio_size = size_blob(uploadBucketName, audio_name)
+    if video_size + audio_size > MAX_MEDIA_SIZE:
+        return error("error, files too big.  Combined file size of {} bytes excedes expected file size of {} bytes".format(video_size + audio_size, MAX_MEDIA_SIZE))
 
-        if video_size + audio_size > MAX_MEDIA_SIZE:
-            return error("error, files too big.  Combined file size of {} bytes excedes expected file size of {} bytes".format(video_size + audio_size, MAX_MEDIA_SIZE))
+    try:
+        font_size = int(get_value(r, 'font_size', 50))
+        video_usable = [float(get_value(r, 'video_start', 0)), float(get_value(r, 'video_end', 0))]
+        audio_usable = [float(get_value(r, 'audio_start', 0)), float(get_value(r, 'audio_end', 0))]
+        font = get_value(r, 'font', 'Arial-Bold')
+        text_position = get_value(r, "text_position", "mm")
+        text_width = float(get_value(r, "text_width", 90))/100
+        video_speed = float(get_value(r, 'video_speed', 1))
+        audio_speed = float(get_value(r, 'audio_speed', 1))
+        view_shadow = get_value(r, 'visibleShadow', 'off') == 'on'
+        shadow_offset = [int(get_value(r, 'shadow_offset_x', 5)), int(get_value(r, 'shadow_offset_y', 5))]
+        text_colour = get_value(r, 'textColour', 'ffffff')
+        shadow_colour = get_value(r, 'shadowColour', '000000')
+        background_colour = get_value(r, 'background_colour', '000000')
+        video_fade = [float(get_value(r, 'video_fade_in', 0)), float(get_value(r, 'video_fade_out', 0))]
+        audio_fade = [float(get_value(r, 'audio_fade_in', 0)), float(get_value(r, 'audio_fade_out', 0))]
+        crop_video = get_value(r, 'crop_video', 'off') == 'on'
+        crop_audio = get_value(r, 'crop_audio', 'off') == 'on'
+        video_top = int(get_value(r, 'videoTop', 0))
+        video_left = int(get_value(r, 'videoLeft', 0))
+        video_bottom = int(get_value(r, 'videoBottom', 0))
+        video_right = int(get_value(r, 'videoRight', 0))
+    except ValueError:
+        return error("Error, unable to interpret inputs")
 
+    # Check colours are valid 6 character hex strings
+    for col, name in ((text_colour, "text"), (shadow_colour, "shadow"), (background_colour, "background")):
+        if not is_valid_colour(col):
+            return error("Error, invalid", name, "colour")
+
+    # CSV file
+    csv_contents = get_value(r, 'csvFile', '').replace("\r\n", "\n").strip()
+    word_count = 0
+
+    if csv_contents != '':
         try:
-            font_size = int(get_value(r, 'font_size', 50))
-            video_usable = [float(get_value(r, 'video_start', 0)), float(get_value(r, 'video_end', 0))]
-            audio_usable = [float(get_value(r, 'audio_start', 0)), float(get_value(r, 'audio_end', 0))]
-            font = get_value(r, 'font', 'Arial-Bold')
-            text_position = get_value(r, "text_position", "mm")
-            text_width = float(get_value(r, "text_width", 90))/100
-            video_speed = float(get_value(r, 'video_speed', 1))
-            audio_speed = float(get_value(r, 'audio_speed', 1))
-            view_shadow = get_value(r, 'visibleShadow', 'off') == 'on'
-            shadow_offset = [int(get_value(r, 'shadow_offset_x', 5)), int(get_value(r, 'shadow_offset_y', 5))]
-            text_colour = get_value(r, 'textColour', 'ffffff')
-            shadow_colour = get_value(r, 'shadowColour', '000000')
-            background_colour = get_value(r, 'background_colour', '000000')
-            video_fade = [float(get_value(r, 'video_fade_in', 0)), float(get_value(r, 'video_fade_out', 0))]
-            audio_fade = [float(get_value(r, 'audio_fade_in', 0)), float(get_value(r, 'audio_fade_out', 0))]
-            crop_video = get_value(r, 'crop_video', 'off') == 'on'
-            crop_audio = get_value(r, 'crop_audio', 'off') == 'on'
-            video_top = int(get_value(r, 'videoTop', 0))
-            video_left = int(get_value(r, 'videoLeft', 0))
-            video_bottom = int(get_value(r, 'videoBottom', 0))
-            video_right = int(get_value(r, 'videoRight', 0))
-        except ValueError:
-            return error("Error, unable to interpret inputs")
+            data = list(csv.reader(csv_contents.split("\n"), quoting=csv.QUOTE_NONNUMERIC))
+        except:
+            return error("Error, unable to interpret read timings")
 
-        # Check colours are valid 6 character hex strings
-        for col, name in ((text_colour, "text"), (shadow_colour, "shadow"), (background_colour, "background")):
-            if not is_valid_colour(col):
-                return error("Error, invalid", name, "colour")
-
-        # CSV file
-        csv_contents = get_value(r, 'csvFile', '').replace("\r\n", "\n").strip()
-        word_count = 0
-
-        if csv_contents != '':
-            try:
-                data = list(csv.reader(csv_contents.split("\n"), quoting=csv.QUOTE_NONNUMERIC))
-            except:
-                return error("Error, unable to interpret read timings")
-
-            if audio_speed != 1 or audio_usable[0] != 0:
-                for i, row in enumerate(data):
-                    word_count += len(row[0].split(" "))
-                    for j, cell in enumerate(row[1:]):
-                        data[i][j+1] = str(max(0, round((float(cell) - audio_usable[0]) * (1/audio_speed), 2)))
-            else:
-                for i, row in enumerate(data):
-                    word_count += len(row[0].split(" "))
-
-            csv_name = 'csv_' + str(t) + ".csv"
-            local_csv = "/tmp/" + csv_name
-            with open(local_csv, "a+", newline='') as f:
-                wr = csv.writer(f, quoting=csv.QUOTE_ALL)
-                wr.writerows(data)
-
-            upload_blob("addlyrics-content", local_csv, csv_name)
+        if audio_speed != 1 or audio_usable[0] != 0:
+            for i, row in enumerate(data):
+                word_count += len(row[0].split(" "))
+                for j, cell in enumerate(row[1:]):
+                    data[i][j+1] = str(max(0, round((float(cell) - audio_usable[0]) * (1/audio_speed), 2)))
         else:
-            csv_name = ""
+            for i, row in enumerate(data):
+                word_count += len(row[0].split(" "))
 
-        # Make sure usable audio and video are actually usable after uploading CSV blob
-        if audio_usable[1] != 0 and audio_usable[1] <= audio_usable[0]:
-            return error("Audio timestamps don't make sense")
-        
-        if video_usable[1] != 0 and video_usable[1] <= video_usable[0]:
-            return error("Video timestamps don't make sense")
+        csv_name = 'csv_' + str(t) + ".csv"
+        local_csv = "/tmp/" + csv_name
+        with open(local_csv, "a+", newline='') as f:
+            wr = csv.writer(f, quoting=csv.QUOTE_ALL)
+            wr.writerows(data)
 
-        crop_image = [video_left, video_top, video_right, video_bottom]
+        upload_blob("addlyrics-content", local_csv, csv_name)
+    else:
+        csv_name = ""
 
-        for i, j in enumerate(crop_image):
-            crop_image[i] = 2 * round(j / 2)
-        
-        if video_left > video_right and video_right != 0:
-            error("Video croping doesn't make sense")
-        
-        if video_top > video_bottom and video_bottom != 0:
-            error("Video croping doesn't make sense")
+    # Make sure usable audio and video are actually usable after uploading CSV blob
+    if audio_usable[1] != 0 and audio_usable[1] <= audio_usable[0]:
+        return error("Audio timestamps don't make sense")
+    
+    if video_usable[1] != 0 and video_usable[1] <= video_usable[0]:
+        return error("Video timestamps don't make sense")
 
-        args = {
-            "video_id": str(t), 
-            "csv_name": csv_name,
-            "video_name": video_name,
-            "audio_name": audio_name,
-            "background_colour": background_colour,
-            "text_position": text_position,
-            "text_width": text_width,
-            "video_usable": video_usable,
-            "audio_usable": audio_usable,
-            "font": font,
-            "font_size": font_size,
-            "video_speed": video_speed,
-            "audio_speed": audio_speed,
-            "view_shadow": view_shadow,
-            "shadow_offset": shadow_offset,
-            "text_colour": text_colour,
-            "shadow_colour": shadow_colour,
-            "video_fade": video_fade,
-            "audio_fade": audio_fade,
-            "crop_video": crop_video,
-            "crop_audio": crop_audio,
-            "crop_image": crop_image
-        }
+    crop_image = [video_left, video_top, video_right, video_bottom]
 
-        data = {
-            'args': args
-        }
+    for i, j in enumerate(crop_image):
+        crop_image[i] = 2 * round(j / 2)
+    
+    if video_left > video_right and video_right != 0:
+        error("Video croping doesn't make sense")
+    
+    if video_top > video_bottom and video_bottom != 0:
+        error("Video croping doesn't make sense")
 
-        sqlConnector.set_document(t, data, merge=True)
+    args = {
+        "video_id": str(t), 
+        "csv_name": csv_name,
+        "video_name": video_name,
+        "audio_name": audio_name,
+        "background_colour": background_colour,
+        "text_position": text_position,
+        "text_width": text_width,
+        "video_usable": video_usable,
+        "audio_usable": audio_usable,
+        "font": font,
+        "font_size": font_size,
+        "video_speed": video_speed,
+        "audio_speed": audio_speed,
+        "view_shadow": view_shadow,
+        "shadow_offset": shadow_offset,
+        "text_colour": text_colour,
+        "shadow_colour": shadow_colour,
+        "video_fade": video_fade,
+        "audio_fade": audio_fade,
+        "crop_video": crop_video,
+        "crop_audio": crop_audio,
+        "crop_image": crop_image
+    }
 
-        ##########
-        # Q code #
-        ##########
-        client = tasks_v2.CloudTasksClient()
+    data = {
+        'args': args
+    }
 
-        # Values for q-ing
-        project = 'addlyrics'
-        queue = 'render-q'
-        location = 'europe-west1'
-        url = 'https://render-7cwyob5r6a-ew.a.run.app/render'
-        payload = json.dumps(args)
+    sqlConnector.set_document(t, data, merge=True)
 
-        # Construct the fully qualified queue name.
-        parent = client.queue_path(project, location, queue)
+    ##########
+    # Q code #
+    ##########
+    client = tasks_v2.CloudTasksClient()
 
-        # Construct the request body.
-        task = {
-            'http_request': {  # Specify the type of request.
-                'http_method': 'POST',
-                'url': url,  # The full url path that the task will be sent to.
-                'oidc_token': {
-                    'service_account_email': "tasker@addlyrics.iam.gserviceaccount.com"
-                }
+    # Values for q-ing
+    project = 'addlyrics'
+    queue = 'render-q'
+    location = 'europe-west1'
+    url = 'https://render-7cwyob5r6a-ew.a.run.app/render'
+    payload = json.dumps(args)
+
+    # Construct the fully qualified queue name.
+    parent = client.queue_path(project, location, queue)
+
+    # Construct the request body.
+    task = {
+        'http_request': {  # Specify the type of request.
+            'http_method': 'POST',
+            'url': url,  # The full url path that the task will be sent to.
+            'oidc_token': {
+                'service_account_email': "tasker@addlyrics.iam.gserviceaccount.com"
             }
         }
+    }
 
-        # The API expects a payload of type bytes.
-        converted_payload = payload.encode()
+    # The API expects a payload of type bytes.
+    converted_payload = payload.encode()
 
-        # Add the payload to the request.
-        task['http_request']['body'] = converted_payload
+    # Add the payload to the request.
+    task['http_request']['body'] = converted_payload
 
-        # for debugging purposes
-        # import taskSim as client
+    # for debugging purposes
+    # import taskSim as client
 
-        # Use the client to build and send the task.
-        response = client.create_task(parent=parent, task=task)
+    # Use the client to build and send the task.
+    response = client.create_task(parent=parent, task=task)
 
-        return redirect(url_for('hold', videoID=t))
+    return redirect(url_for('hold', videoID=t))
 
 
 @app.route('/get_file', methods=['GET'])
@@ -547,4 +545,4 @@ if __name__ == '__main__':
     # Engine, a webserver process such as Gunicorn will serve the app. This
     # can be configured by adding an `entrypoint` to app.yaml.
     print("Starting server")
-    app.run(host='127.0.0.1', port=8087, debug=True, ssl_context='adhoc')
+    app.run(host='127.0.0.1', port=5000, debug=True, ssl_context='adhoc')

@@ -343,7 +343,7 @@ def render(args):
     output_args = []
     import re
     for arg in composition.compile()[1:]:
-        output_args.append(re.subn(r'\]drawtext=(.*?)\[', ']drawtext=\g<1>[', arg)[0])
+        output_args.append(re.subn(r'\]drawtext=(.*?)\[', r']drawtext=\g<1>[', arg)[0])
         #output_args.append(arg)
     #composition.run()
 

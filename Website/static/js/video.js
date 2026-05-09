@@ -5,8 +5,8 @@ var ctx = canvas.getContext('2d')
 var myAudio = document.getElementById("audio1")
 var videoUpload = document.getElementById("videoUpload")
 var audioUpload = document.getElementById("audioUpload")
-//var videoExt = document.getElementById("videoExt")
-//var audioExt = document.getElementById("audioExt")
+var videoExt = document.getElementById("videoExt")
+var audioExt = document.getElementById("audioExt")
 
 var videoTop = 0
 var videoBottom = 1080
@@ -17,7 +17,7 @@ var videoStart = document.getElementById("video_start")
 var videoEnd = document.getElementById("video_end")
 var audioStart = document.getElementById("audio_start")
 var audioEnd = document.getElementById("audio_end")
-//var csv_area = document.getElementById("csv")
+var csv_area = document.getElementById("csv")
 var csvHead = document.getElementById("csvHeading")
 var lyrics = document.getElementById("lyricsArea")
 var tbl = document.getElementById("table1")
@@ -920,7 +920,7 @@ function write_csv() {
         }
     }
 
-    // csv_area.value = csv.join("\r")
+    csv_area.value = csv.join("\r")
     return true
 }
 
@@ -983,7 +983,7 @@ function getOutputDuration() {
 function checkForm() {
     // Check CSV
     if (lyrics.value.trim() == "") {
-        // csv_area.value = ""
+        csv_area.value = ""
     } else {
         if (!write_csv()) {
             return false
@@ -1485,11 +1485,11 @@ async function submitForm() {
     }
 
     if (valid) {
-        // document.getElementById("videoTop").value = Math.round(videoTop)
-        // document.getElementById("videoLeft").value = Math.round(videoLeft)
-        // document.getElementById("videoBottom").value = Math.round(videoBottom)
-        // document.getElementById("videoRight").value = Math.round(videoRight)
-        // document.getElementById("uuid").value = video_id
+        document.getElementById("videoTop").value = Math.round(videoTop)
+        document.getElementById("videoLeft").value = Math.round(videoLeft)
+        document.getElementById("videoBottom").value = Math.round(videoBottom)
+        document.getElementById("videoRight").value = Math.round(videoRight)
+        document.getElementById("uuid").value = video_id
         document.getElementById("submitbutton").innerHTML = "Submitting Form Data..."
         document.getElementById("theform").submit()
     } else {
